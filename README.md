@@ -62,3 +62,10 @@ kubeuser list
 ```
 
 
+### fetch CA certificate and key
+
+To fetch CA crt and key, use the following command:
+
+```
+kubeuser fetch-ca --master_ip <MASTER_IP> --master_server_user <USER_NAME> --private_key_path <PATH_TO_PRIVATE_KEY>
+```
