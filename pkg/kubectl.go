@@ -15,7 +15,8 @@ func CheckKubectl() {
 }
 
 func SetCluster(clusterName, apiEndpoint string) {
-	// Define the command to execute
+	apiEndpoint = "https://" + apiEndpoint + ":6443"
+
 	command := exec.Command("kubectl", "config", "set-cluster", clusterName,
 		"--certificate-authority=ca.crt",
 		"--embed-certs=true",

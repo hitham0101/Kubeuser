@@ -14,9 +14,9 @@ var FetchCaCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 
 		// extract the flags
-		master_server_user, _ := cmd.Flags().GetString("master_server_user")
 		private_key_path, _ := cmd.Flags().GetString("private_key_path")
 		master_ip, _ := cmd.Flags().GetString("master_ip")
+		master_server_user, _ := cmd.Flags().GetString("master_server_user")
 
 		// Call the FetchCa function from the pkg package to fetch the CA key and certificate from the k8s cluster
 		pkg.FetchCa(master_server_user, private_key_path, master_ip)
