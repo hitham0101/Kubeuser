@@ -17,7 +17,6 @@ type Config struct {
 	MasterIP         string `yaml:"master_ip"`
 }
 
-// Config represents the structure of the YAML file
 type Context struct {
 	Context string `yaml:"context"`
 }
@@ -49,17 +48,17 @@ func Initialize(cluster_name, master_ip, master_server_user, private_key_path st
 			fmt.Println("Error creating .kubeuser directory:", err)
 			return
 		}
-		fmt.Println(".kubeuser directory created successfully:", dirPath)
+		fmt.Println(".kubeuser directory created successfully")
 	} else {
-		fmt.Println(".kubeuser directory already exists:", dirPath)
+		fmt.Println(".kubeuser directory already exists:")
 	}
 
-	subdirectory, err := createSubDirectory(clusterName, dirPath)
+	clusterSubDirectory, err := createClusterSubDirectory(clusterName, dirPath)
 	if err != nil {
 		fmt.Println("Error:", err)
 		return
 	}
-	fmt.Println("Subdirectory created successfully.")
+	fmt.Printf("Subdirectory created successfully: %s\n", clusterSubDirectory)
 
 	// ############################################################
 	// Write configuration to file
@@ -73,7 +72,7 @@ func Initialize(cluster_name, master_ip, master_server_user, private_key_path st
 	}
 
 	// Write configuration to file
-	err = writeConfigToFile(config, subdirectory)
+	err = writeConfigToFile(config, clusterSubDirectory)
 	if err != nil {
 		fmt.Println("Error:", err)
 		return
@@ -90,7 +89,7 @@ func Initialize(cluster_name, master_ip, master_server_user, private_key_path st
 
 }
 
-func createSubDirectory(clusterName, kubeUserDir string) (dirPath string, err error) {
+func createClusterSubDirectory(clusterName, kubeUserDir string) (dirPath string, err error) {
 
 	// Define the subdirectory path
 	clusterDirPath := filepath.Join(kubeUserDir, clusterName)
