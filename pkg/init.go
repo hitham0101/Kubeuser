@@ -17,8 +17,9 @@ type Config struct {
 	MasterIP         string `yaml:"master_ip"`
 }
 
-type Context struct {
-	Context string `yaml:"context"`
+type Contexts struct {
+	Contexts       []string `yaml:"contexts"`
+	CurrentContext string   `yaml:"current-context"`
 }
 
 func Initialize(cluster_name, master_ip, master_server_user, private_key_path string) {
@@ -45,47 +46,62 @@ func Initialize(cluster_name, master_ip, master_server_user, private_key_path st
 		// Create the directory
 		err := os.Mkdir(dirPath, 0755)
 		if err != nil {
-			fmt.Println("Error creating .kubeuser directory:", err)
+			fmt.Println("Error creating .kubeuser directory", err)
 			return
 		}
 		fmt.Println(".kubeuser directory created successfully")
-	} else {
-		fmt.Println(".kubeuser directory already exists:")
 	}
 
-	clusterSubDirectory, err := createClusterSubDirectory(clusterName, dirPath)
-	if err != nil {
-		fmt.Println("Error:", err)
+	// check if the cluster subdirectory already exists
+	if _, err := os.Stat(filepath.Join(dirPath, clusterName)); !os.IsNotExist(err) {
+		fmt.Printf("%s already initialized \n", clusterName)
 		return
+	} else {
+		clusterSubDirectory, err := createClusterSubDirectory(clusterName, dirPath)
+		if err != nil {
+			fmt.Println("Error:", err)
+			return
+		}
+		fmt.Printf("%s Subdirectory created successfully \n", clusterSubDirectory)
+
+		// ############################################################
+		// Write configuration to file
+
+		// Create configuration object
+		config := Config{
+			ClusterName:      clusterName,
+			PrivateKeyPath:   privateKeyPath,
+			MasterServerUser: masterServerUser,
+			MasterIP:         masterIP,
+		}
+
+		// Write configuration to file
+		err = writeConfigToFile(config, clusterSubDirectory)
+		if err != nil {
+			fmt.Println("Error:", err)
+			return
+		}
+		fmt.Println("Configuration file created successfully.")
 	}
-	fmt.Printf("Subdirectory created successfully: %s\n", clusterSubDirectory)
 
 	// ############################################################
-	// Write configuration to file
 
-	// Create configuration object
-	config := Config{
-		ClusterName:      clusterName,
-		PrivateKeyPath:   privateKeyPath,
-		MasterServerUser: masterServerUser,
-		MasterIP:         masterIP,
-	}
-
-	// Write configuration to file
-	err = writeConfigToFile(config, clusterSubDirectory)
-	if err != nil {
-		fmt.Println("Error:", err)
-		return
-	}
-	fmt.Println("Configuration file created successfully.")
-
+	// Define the context file
 	filePath := dirPath + "/context"
-	err = createContext(filePath)
-	if err != nil {
-		log.Fatalf("Failed to create context file: %v", err)
-	}
 
-	fmt.Println("context file created successfully!")
+	// check if the context file already exists
+	if _, err := os.Stat(filePath); !os.IsNotExist(err) {
+
+		addContextAndSetCurrent(filePath, clusterName)
+		fmt.Println("context file updated successfully!")
+		return
+	} else {
+		err = createContext(filePath, clusterName)
+		if err != nil {
+			log.Fatalf("Failed to create context file: %v", err)
+		}
+		fmt.Println("context file created successfully!")
+	}
 
 }
 
@@ -140,13 +156,14 @@ func writeConfigToFile(config Config, dirPath string) error {
 	return nil
 }
 
-func createContext(filePath string) error {
+func createContext(filePath, clusterName string) error {
 
 	fmt.Println("Creating context file...")
-	fmt.Println("Context file path:", filePath)
+
 	// Define the configuration
-	config := Context{
-		Context: "default",
+	config := Contexts{
+		Contexts:       []string{clusterName},
+		CurrentContext: clusterName,
 	}
 
 	// Marshal the config struct to YAML format
@@ -159,6 +176,46 @@ func createContext(filePath string) error {
 	err = os.WriteFile(filePath, data, 0644)
 	if err != nil {
 		return fmt.Errorf("error writing YAML to file: %w", err)
+	}
+
+	return nil
+}
+
+func addContextAndSetCurrent(filePath, newContext string) error {
+	// Read the existing YAML file
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return fmt.Errorf("error reading file: %v", err)
+	}
+
+	// Parse the YAML file into the Contexts struct
+	var Contexts Contexts
+	err = yaml.Unmarshal(data, &Contexts)
+	if err != nil {
+		return fmt.Errorf("error unmarshalling YAML: %v", err)
+	}
+
+	// Add the new context to the contexts slice if it doesn't already exist
+	for _, context := range Contexts.Contexts {
+		if context == newContext {
+			return fmt.Errorf("context '%s' already exists", newContext)
+		}
+	}
+	Contexts.Contexts = append(Contexts.Contexts, newContext)
+
+	// Set the new context as the current context
+	Contexts.CurrentContext = newContext
+
+	// Marshal the struct back into YAML
+	updatedData, err := yaml.Marshal(&Contexts)
+	if err != nil {
+		return fmt.Errorf("error marshalling YAML: %v", err)
+	}
+
+	// Write the updated YAML back to the file
+	err = os.WriteFile(filePath, updatedData, 0644)
+	if err != nil {
+		return fmt.Errorf("error writing file: %v", err)
 	}
 
 	return nil
