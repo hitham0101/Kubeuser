@@ -2,6 +2,7 @@ package pkg
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"os/user"
 	"path/filepath"
@@ -14,6 +15,11 @@ type Config struct {
 	PrivateKeyPath   string `yaml:"private_key_path"`
 	MasterServerUser string `yaml:"master_server_user"`
 	MasterIP         string `yaml:"master_ip"`
+}
+
+// Config represents the structure of the YAML file
+type Context struct {
+	Context string `yaml:"context"`
 }
 
 func Initialize(cluster_name, master_ip, master_server_user, private_key_path string) {
@@ -73,6 +79,15 @@ func Initialize(cluster_name, master_ip, master_server_user, private_key_path st
 		return
 	}
 	fmt.Println("Configuration file created successfully.")
+
+	filePath := dirPath + "/context"
+	err = createContext(filePath)
+	if err != nil {
+		log.Fatalf("Failed to create context file: %v", err)
+	}
+
+	fmt.Println("context file created successfully!")
+
 }
 
 func createSubDirectory(clusterName, kubeUserDir string) (dirPath string, err error) {
@@ -121,6 +136,30 @@ func writeConfigToFile(config Config, dirPath string) error {
 	_, err = file.Write(yamlData)
 	if err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func createContext(filePath string) error {
+
+	fmt.Println("Creating context file...")
+	fmt.Println("Context file path:", filePath)
+	// Define the configuration
+	config := Context{
+		Context: "default",
+	}
+
+	// Marshal the config struct to YAML format
+	data, err := yaml.Marshal(&config)
+	if err != nil {
+		return fmt.Errorf("error marshalling config to YAML: %w", err)
+	}
+
+	// Write the YAML data to the specified file
+	err = os.WriteFile(filePath, data, 0644)
+	if err != nil {
+		return fmt.Errorf("error writing YAML to file: %w", err)
 	}
 
 	return nil
