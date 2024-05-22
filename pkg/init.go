@@ -62,7 +62,6 @@ func Initialize(cluster_name, master_ip, master_server_user, private_key_path st
 			fmt.Println("Error:", err)
 			return
 		}
-		fmt.Printf("%s Subdirectory created successfully \n", clusterSubDirectory)
 
 		// ############################################################
 		// Write configuration to file
@@ -158,8 +157,6 @@ func writeConfigToFile(config Config, dirPath string) error {
 
 func createContext(filePath, clusterName string) error {
 
-	fmt.Println("Creating context file...")
-
 	// Define the configuration
 	config := Contexts{
 		Contexts:       []string{clusterName},
@@ -219,4 +216,102 @@ func addContextAndSetCurrent(filePath, newContext string) error {
 	}
 
 	return nil
+}
+
+// func to check if there is a context file in the .kubeuser directory
+
+func CheckContextFile() bool {
+	// Get the current user's home directory
+	currentUser, err := user.Current()
+	if err != nil {
+		fmt.Println("Error:", err)
+		return false
+	}
+
+	homeDir := currentUser.HomeDir
+
+	// Define the directory path
+	dirPath := filepath.Join(homeDir, ".kubeuser")
+
+	// Define the context file
+	filePath := dirPath + "/context"
+
+	// check if the context file already exists
+	if _, err := os.Stat(filePath); !os.IsNotExist(err) {
+		return true
+	} else {
+		return false
+	}
+}
+
+// func to get the current context
+
+func GetCurrentContext() string {
+	// Get the current user's home directory
+	currentUser, err := user.Current()
+	if err != nil {
+		fmt.Println("Error:", err)
+		return ""
+	}
+
+	homeDir := currentUser.HomeDir
+
+	// Define the directory path
+	dirPath := filepath.Join(homeDir, ".kubeuser")
+
+	// Define the context file
+	filePath := dirPath + "/context"
+
+	// Read the existing YAML file
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		fmt.Println("Error reading file:", err)
+		return ""
+	}
+
+	// Parse the YAML file into the Contexts struct
+	var Contexts Contexts
+	err = yaml.Unmarshal(data, &Contexts)
+	if err != nil {
+		fmt.Println("Error unmarshalling YAML:", err)
+		return ""
+	}
+
+	return Contexts.CurrentContext
+}
+
+// func to get the value of the current context in the subdirectory with the same name and had config.yaml file
+
+func GetContextConfig(currentContext string) Config {
+	// Get the current user's home directory
+	currentUser, err := user.Current()
+	if err != nil {
+		fmt.Println("Error:", err)
+		return Config{}
+	}
+
+	homeDir := currentUser.HomeDir
+
+	// Define the directory path
+	dirPath := filepath.Join(homeDir, ".kubeuser")
+
+	// Define the context file
+	configFilePath := dirPath + "/" + currentContext + "/config.yaml"
+
+	// Read the existing YAML file
+	configData, err := os.ReadFile(configFilePath)
+	if err != nil {
+		fmt.Println("Error reading file:", err)
+		return Config{}
+	}
+
+	// Parse the YAML file into the Config struct
+	var config Config
+	err = yaml.Unmarshal(configData, &config)
+	if err != nil {
+		fmt.Println("Error unmarshalling YAML:", err)
+		return Config{}
+	}
+
+	return config
 }
